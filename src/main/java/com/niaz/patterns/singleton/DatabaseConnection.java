@@ -1,12 +1,13 @@
 package com.niaz.patterns.singleton;
 
 /**
- * Thread-safe Singleton using double-checked locking.
- * Simulates a database connection pool — the classic singleton use case.
+ * Thread-safe Singleton using the Initialization-on-Demand Holder idiom.
+ *
+ * Replaced double-checked locking — the holder class isn't loaded until
+ * getInstance() is called, and class loading is inherently thread-safe.
+ * No volatile, no synchronized block needed.
  */
 public class DatabaseConnection {
-
-    private static volatile DatabaseConnection instance;
 
     private final String connectionUrl;
     private boolean connected;
@@ -16,15 +17,17 @@ public class DatabaseConnection {
         this.connected = false;
     }
 
+    /**
+     * Inner static class that holds the singleton instance.
+     * JVM guarantees this is loaded lazily and thread-safe.
+     */
+    private static class Holder {
+        private static final DatabaseConnection INSTANCE =
+                new DatabaseConnection("jdbc:postgresql://localhost:5432/appdb");
+    }
+
     public static DatabaseConnection getInstance() {
-        if (instance == null) {
-            synchronized (DatabaseConnection.class) {
-                if (instance == null) {
-                    instance = new DatabaseConnection("jdbc:postgresql://localhost:5432/appdb");
-                }
-            }
-        }
-        return instance;
+        return Holder.INSTANCE;
     }
 
     public void connect() {
@@ -49,12 +52,5 @@ public class DatabaseConnection {
 
     public String getConnectionUrl() {
         return connectionUrl;
-    }
-
-    /**
-     * Only for testing — resets the singleton instance.
-     */
-    static void resetInstance() {
-        instance = null;
     }
 }
